@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ONG — Sistema de Gerenciamento de Alunos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0f1e;
+  --bg2:#111827;
+  --bg3:#1a2235;
+  --card:#1e2d45;
+  --card2:#253550;
+  --accent:#f97316;
+  --accent2:#fb923c;
+  --blue:#3b82f6;
+  --green:#22c55e;
+  --red:#ef4444;
+  --yellow:#eab308;
+  --text:#f1f5f9;
+  --text2:#94a3b8;
+  --border:#2d3f5c;
+  --radius:14px;
+  --shadow:0 8px 32px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Syne',sans-serif}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0a0f1e 0%,#0d1b3e 50%,#0a0f1e 100%);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:0}
+.login-blob{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(249,115,22,.15) 0%,transparent 70%);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.1)}}
+.login-box{position:relative;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:48px 40px;width:min(420px,90vw);box-shadow:0 24px 80px rgba(0,0,0,.6);animation:slideUp .5s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo img{width:110px;height:110px;object-fit:contain;border-radius:50%;background:#fff;padding:6px;box-shadow:0 0 0 3px var(--accent)}
+.login-logo h2{margin-top:16px;font-size:1.4rem;color:var(--accent)}
+.login-logo p{color:var(--text2);font-size:.85rem;margin-top:4px}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:.8rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.form-group input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.95rem;transition:.2s}
+.form-group input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.15)}
+.btn-login{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:14px;color:#fff;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:.04em}
+.btn-login:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(249,115,22,.4)}
+.login-error{color:var(--red);font-size:.85rem;text-align:center;margin-top:12px;display:none}
+
+/* ── APP SHELL ── */
+#app{display:none;flex-direction:column;min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-logo{width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff;padding:3px}
+.header-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--accent)}
+.header-title span{color:var(--text2);font-size:.75rem;font-weight:400;display:block;line-height:1}
+.btn-logout{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:7px 14px;color:var(--red);font-size:.8rem;font-weight:600;cursor:pointer;transition:.2s}
+.btn-logout:hover{background:rgba(239,68,68,.25)}
+
+/* ── NAV ── */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-item{padding:14px 18px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:600;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;transition:.2s;display:flex;align-items:center;gap:7px}
+.nav-item:hover{color:var(--text)}
+.nav-item.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-icon{font-size:1rem}
+
+/* ── MAIN CONTENT ── */
+main{flex:1;padding:24px;max-width:1400px;margin:0 auto;width:100%}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── PAGE HEADER ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.page-header h2{font-size:1.6rem;color:var(--text)}
+.page-header h2 span{color:var(--accent)}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.card-sm{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+
+/* ── GRID LAYOUTS ── */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+
+/* ── STAT CARDS ── */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:16px;transition:.2s}
+.stat-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.stat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.stat-icon.orange{background:rgba(249,115,22,.15);color:var(--accent)}
+.stat-icon.blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.stat-icon.green{background:rgba(34,197,94,.15);color:var(--green)}
+.stat-icon.red{background:rgba(239,68,68,.15);color:var(--red)}
+.stat-icon.yellow{background:rgba(234,179,8,.15);color:var(--yellow)}
+.stat-value{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;line-height:1}
+.stat-label{color:var(--text2);font-size:.8rem;margin-top:3px}
+
+/* ── FORMS ── */
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:14px}
+.field label{display:block;font-size:.78rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;transition:.2s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+.field select option{background:var(--bg2)}
+.field textarea{resize:vertical;min-height:80px}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.checkbox-item{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.2s;font-size:.85rem}
+.checkbox-item:hover{border-color:var(--accent)}
+.checkbox-item input{width:16px;height:16px;accent-color:var(--accent)}
+.checkbox-item.checked{border-color:var(--accent);background:rgba(249,115,22,.08)}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:9px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(249,115,22,.35)}
+.btn-secondary{background:var(--bg3);border:1px solid var(--border);color:var(--text)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+.btn-success:hover{background:rgba(34,197,94,.25)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-icon{width:34px;height:34px;padding:0;justify-content:center}
+
+/* ── TABLES ── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+thead tr{background:var(--bg3)}
+th{padding:12px 16px;text-align:left;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+td{padding:12px 16px;border-top:1px solid var(--border);vertical-align:middle}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+.actions{display:flex;gap:6px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.badge-yellow{background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.25)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.badge-orange{background:rgba(249,115,22,.15);color:var(--accent);border:1px solid rgba(249,115,22,.25)}
+
+/* ── SEARCH ── */
+.search-box{position:relative}
+.search-box input{padding-left:38px}
+.search-box::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;visibility:hidden;transition:.3s}
+.modal-overlay.open{opacity:1;visibility:visible}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px;width:min(600px,100%);max-height:90vh;overflow-y:auto;transform:scale(.9);transition:.3s;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.modal-overlay.open .modal{transform:scale(1)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-header h3{font-size:1.2rem}
+.modal-close{background:none;border:none;color:var(--text2);font-size:1.3rem;cursor:pointer;padding:4px;border-radius:6px;transition:.2s}
+.modal-close:hover{color:var(--text);background:var(--bg3)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:.85rem;min-width:260px;display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;box-shadow:var(--shadow)}
+.toast-item.success{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08)}
+.toast-item.error{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)}
+@keyframes toastIn{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── CRACHA ── */
+.cracha-preview{background:#fff;color:#1a2235;border-radius:16px;padding:24px;max-width:320px;margin:0 auto;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3);font-family:'DM Sans',sans-serif}
+.cracha-header{background:linear-gradient(135deg,#0a0f1e,#1e3a5f);border-radius:10px;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.cracha-logo{width:60px;height:60px;object-fit:contain;border-radius:50%;background:#fff;padding:4px}
+.cracha-ong{color:#fff;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700}
+.cracha-nome{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;color:#1a2235;margin:10px 0 4px}
+.cracha-matricula{font-size:.75rem;color:#64748b;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.cracha-qr{margin:14px auto;display:flex;justify-content:center}
+.cracha-oficinas{font-size:.72rem;color:#64748b;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:4px}
+.cracha-oficinas strong{display:block;color:#1a2235;font-size:.78rem;margin-bottom:4px}
+
+/* ── REGISTRO DE AULA ── */
+.aula-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:.2s}
+.aula-card:hover,.aula-card.selected{border-color:var(--accent);background:rgba(249,115,22,.06)}
+.freq-list{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding-right:4px}
+.freq-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.freq-item-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.freq-avatar{width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;flex-shrink:0}
+.freq-actions{display:flex;gap:6px;flex-shrink:0}
+.freq-btn{width:34px;height:34px;border:none;border-radius:8px;cursor:pointer;font-size:.95rem;transition:.2s;display:flex;align-items:center;justify-content:center}
+.freq-btn.presente{background:rgba(34,197,94,.15);color:var(--green)}
+.freq-btn.falta{background:rgba(239,68,68,.15);color:var(--red)}
+.freq-btn.atraso{background:rgba(234,179,8,.15);color:var(--yellow)}
+.freq-btn.active-presente{background:var(--green);color:#fff}
+.freq-btn.active-falta{background:var(--red);color:#fff}
+.freq-btn.active-atraso{background:var(--yellow);color:#000}
+
+/* ── DASHBOARD CHARTS ── */
+.chart-container{position:relative;height:260px}
+.filter-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
+.filter-bar .field{margin:0;min-width:160px}
+.filter-bar .field label{margin-bottom:4px}
+
+/* ── QR SCANNER ── */
+.qr-area{background:var(--bg3);border:2px dashed var(--border);border-radius:14px;padding:32px;text-align:center;margin:16px 0}
+.qr-area video{width:100%;max-width:300px;border-radius:10px;margin:0 auto;display:block}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  main{padding:14px}
+  .page-header{flex-direction:column;align-items:flex-start}
+  .form-row{grid-template-columns:1fr}
+  .modal{padding:20px}
+  th,td{padding:9px 10px}
+  .stat-value{font-size:1.4rem}
+  header{padding:0 14px}
+  .header-title{font-size:.95rem}
+}
+@media(max-width:480px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .nav-item{padding:12px 12px;font-size:.75rem}
+}
+
+/* ── LOADING ── */
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-state{text-align:center;padding:48px;color:var(--text2)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px;color:var(--text2)}
+.empty-state .emoji{font-size:3rem;display:block;margin-bottom:12px}
+
+/* ── PRINT ── */
+@media print{
+  body{background:#fff !important}
+  #app > *:not(.print-area){display:none !important}
+  .print-area{display:block !important}
+  .cracha-preview{box-shadow:none;border:1px solid #ccc}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-blob"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="https://lgxtmqdipjclfunqarqt.supabase.co/storage/v1/object/public/imagens/LOGOMARCA.png" alt="Logo ONG" onerror="this.style.display='none'"/>
+      <h2>Sistema ONG</h2>
+      <p>Gerenciamento de Alunos</p>
+    </div>
+    <div class="form-group">
+      <label>Usuário</label>
+      <input type="text" id="loginUser" placeholder="Digite seu usuário" autocomplete="off"/>
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="Digite sua senha"/>
+    </div>
+    <button class="btn-login" onclick="doLogin()">ENTRAR NO SISTEMA</button>
+    <p class="login-error" id="loginError">Usuário ou senha incorretos</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <img class="header-logo" src="https://lgxtmqdipjclfunqarqt.supabase.co/storage/v1/object/public/imagens/LOGOMARCA.png" alt="Logo" onerror="this.style.display='none'"/>
+      <div class="header-title">Sistema ONG<span>Gerenciamento de Alunos</span></div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">⏻ Sair</button>
+  </header>
+
+  <nav>
+    <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('alunos')" data-page="alunos"><span class="nav-icon">👦</span> Alunos</div>
+    <div class="nav-item" onclick="showPage('professores')" data-page="professores"><span class="nav-icon">👨‍🏫</span> Professores</div>
+    <div class="nav-item" onclick="showPage('oficinas')" data-page="oficinas"><span class="nav-icon">🎨</span> Oficinas</div>
+    <div class="nav-item" onclick="showPage('cracha')" data-page="cracha"><span class="nav-icon">🪪</span> Crachá</div>
+    <div class="nav-item" onclick="showPage('aula')" data-page="aula"><span class="nav-icon">📋</span> Registro de Aula</div>
+  </nav>
+
+  <main>
+
+    <!-- ═══════════════ DASHBOARD ═══════════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h2>📊 <span>Dashboard</span> de Frequência</h2>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="filter-bar">
+          <div class="field">
+            <label>Período</label>
+            <select id="filtro-periodo" onchange="loadDashboard()">
+              <option value="7">Últimos 7 dias</option>
+              <option value="30" selected>Últimos 30 dias</option>
+              <option value="90">Últimos 3 meses</option>
+              <option value="365">Este ano</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Oficina</label>
+            <select id="filtro-oficina-dash" onchange="loadDashboard()">
+              <option value="">Todas as Oficinas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Professor</label>
+            <select id="filtro-prof-dash" onchange="loadDashboard()">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" onclick="loadDashboard()" style="align-self:flex-end">🔄 Atualizar</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid-4" id="dash-stats" style="margin-bottom:24px">
+        <div class="stat-card"><div class="stat-icon orange">👦</div><div><div class="stat-value" id="stat-total">—</div><div class="stat-label">Total de Alunos</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">🎨</div><div><div class="stat-value" id="stat-oficinas">—</div><div class="stat-label">Oficinas Ativas</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="stat-presencas">—</div><div class="stat-label">Presenças</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="stat-faltas">—</div><div class="stat-label">Faltas</div></div></div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid-2" style="margin-bottom:24px">
+        <div class="card">
+          <h3 style="margin-bottom:16px;font-size:1rem">Alunos por Oficina</h3>
+          <div class="chart-container"><canvas id="chartOficinas"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:16px;font-size:1rem">Frequência por Status</h3>
+          <div class="chart-container"><canvas id="chartFreqStatus"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:24px">
+        <h3 style="margin-bottom:16px;font-size:1rem">Frequência ao Longo do Tempo</h3>
+        <div class="chart-container" style="height:200px"><canvas id="chartTimeline"></canvas></div>
+      </div>
+
+      <!-- Ranking Faltas -->
+      <div class="card">
+        <h3 style="margin-bottom:16px;font-size:1rem">⚠️ Alunos com Mais Faltas</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Aluno</th><th>Matrícula</th><th>Faltas</th><th>Atrasos</th><th>Presenças</th><th>% Presença</th></tr></thead>
+            <tbody id="tbody-faltas"><tr><td colspan="6" class="loading-state"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ ALUNOS ═══════════════ -->
+    <div class="page" id="page-alunos">
+      <div class="page-header">
+        <h2>👦 Gestão de <span>Alunos</span></h2>
+        <button class="btn btn-primary" onclick="openModal('modal-aluno')">+ Novo Aluno</button>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="filter-bar">
+          <div class="field search-box" style="flex:1;min-width:200px">
+            <label>Buscar</label>
+            <input type="text" id="search-aluno" placeholder="Nome ou matrícula..." oninput="renderAlunos()"/>
+          </div>
+          <div class="field">
+            <label>Oficina</label>
+            <select id="filtro-oficina-aluno" onchange="renderAlunos()">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="filtro-status-aluno" onchange="renderAlunos()">
+              <option value="">Todos</option>
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap card" style="padding:0">
+        <table>
+          <thead><tr><th>Matrícula</th><th>Nome</th><th>Responsável</th><th>Telefone</th><th>Oficinas</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="tbody-alunos"><tr><td colspan="7" class="loading-state"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ PROFESSORES ═══════════════ -->
+    <div class="page" id="page-professores">
+      <div class="page-header">
+        <h2>👨‍🏫 <span>Professores</span></h2>
+        <button class="btn btn-primary" onclick="openModal('modal-professor')">+ Novo Professor</button>
+      </div>
+      <div class="table-wrap card" style="padding:0">
+        <table>
+          <thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>CPF</th><th>Oficinas</th><th>Ações</th></tr></thead>
+          <tbody id="tbody-professores"><tr><td colspan="6" class="loading-state"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ OFICINAS ═══════════════ -->
+    <div class="page" id="page-oficinas">
+      <div class="page-header">
+        <h2>🎨 <span>Oficinas</span></h2>
+        <button class="btn btn-primary" onclick="openModal('modal-oficina')">+ Nova Oficina</button>
+      </div>
+      <div class="grid-2" id="grid-oficinas">
+        <div class="loading-state card"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CRACHÁ ═══════════════ -->
+    <div class="page" id="page-cracha">
+      <div class="page-header">
+        <h2>🪪 Gerador de <span>Crachá</span></h2>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="margin-bottom:16px;font-size:1rem">Selecionar Aluno</h3>
+          <div class="field" style="margin-bottom:16px">
+            <label>Buscar Aluno</label>
+            <input type="text" id="search-cracha" placeholder="Nome ou matrícula..." oninput="filterCrachaAlunos()"/>
+          </div>
+          <div id="lista-cracha" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:16px;font-size:1rem">Preview do Crachá</h3>
+          <div id="cracha-output" style="display:none">
+            <div class="cracha-preview" id="cracha-print-area">
+              <div class="cracha-header">
+                <img class="cracha-logo" src="https://lgxtmqdipjclfunqarqt.supabase.co/storage/v1/object/public/imagens/LOGOMARCA.png" alt="Logo" onerror="this.style.display='none'"/>
+                <span class="cracha-ong">ONG — Sistema de Alunos</span>
+              </div>
+              <div class="cracha-nome" id="cracha-nome">—</div>
+              <div class="cracha-matricula" id="cracha-mat">—</div>
+              <div class="cracha-qr" id="cracha-qr"></div>
+              <div class="cracha-oficinas"><strong>Oficinas:</strong><span id="cracha-ofic">—</span></div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+              <button class="btn btn-primary" onclick="imprimirCracha()">🖨️ Imprimir Crachá</button>
+            </div>
+          </div>
+          <div id="cracha-empty" class="empty-state"><span class="emoji">🪪</span>Selecione um aluno para gerar o crachá</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ REGISTRO DE AULA ═══════════════ -->
+    <div class="page" id="page-aula">
+      <div class="page-header">
+        <h2>📋 Registro de <span>Aula</span></h2>
+        <button class="btn btn-primary" onclick="openModal('modal-aula')">+ Nova Aula</button>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <h3 style="margin-bottom:14px;font-size:.95rem">Selecionar Aula</h3>
+          <div class="field" style="margin-bottom:10px">
+            <label>Data</label>
+            <input type="date" id="aula-data-filtro" onchange="loadAulasFreq()"/>
+          </div>
+          <div class="field" style="margin-bottom:10px">
+            <label>Oficina</label>
+            <select id="aula-oficina-filtro" onchange="loadAulasFreq()"><option value="">Todas</option></select>
+          </div>
+          <div id="aulas-list" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:14px;font-size:.95rem" id="freq-titulo">Frequência</h3>
+          <div id="freq-modo" style="display:none">
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+              <button class="btn btn-secondary btn-sm" id="btn-modo-manual" onclick="setModoFreq('manual')">✏️ Manual</button>
+              <button class="btn btn-secondary btn-sm" id="btn-modo-qr" onclick="setModoFreq('qr')">📷 QR Code</button>
+              <button class="btn btn-success btn-sm" onclick="salvarFrequencias()" style="margin-left:auto">💾 Salvar</button>
+            </div>
+            <div id="qr-scanner-area" style="display:none">
+              <div class="qr-area">
+                <p style="color:var(--text2);margin-bottom:12px;font-size:.85rem">📷 Aponte a câmera para o QR Code do crachá</p>
+                <video id="qr-video" autoplay playsinline></video>
+                <p id="qr-status" style="margin-top:10px;font-size:.82rem;color:var(--accent)"></p>
+                <button class="btn btn-secondary btn-sm" onclick="stopQR()" style="margin-top:10px">⏹ Parar Scanner</button>
+              </div>
+            </div>
+            <div id="freq-lista" class="freq-list"></div>
+          </div>
+          <div id="freq-empty" class="empty-state"><span class="emoji">📋</span>Selecione uma aula para registrar frequência</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<!-- ══════════ MODAIS ══════════ -->
+
+<!-- Modal Aluno -->
+<div class="modal-overlay" id="modal-aluno">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-aluno-title">Cadastrar Aluno</h3>
+      <button class="modal-close" onclick="closeModal('modal-aluno')">✕</button>
+    </div>
+    <input type="hidden" id="aluno-id"/>
+    <div class="form-row">
+      <div class="field"><label>Nome Completo *</label><input type="text" id="aluno-nome" placeholder="Nome do aluno"/></div>
+      <div class="field"><label>Data de Nascimento</label><input type="date" id="aluno-nasc"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Responsável</label><input type="text" id="aluno-resp" placeholder="Nome do responsável"/></div>
+      <div class="field"><label>Telefone do Responsável</label><input type="text" id="aluno-tel" placeholder="(00) 00000-0000"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field" style="grid-column:1/-1"><label>Endereço</label><input type="text" id="aluno-end" placeholder="Rua, nº, bairro"/></div>
+    </div>
+    <div class="field">
+      <label>Oficinas Matriculadas</label>
+      <div class="checkbox-group" id="oficinas-check"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-aluno')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAluno()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Professor -->
+<div class="modal-overlay" id="modal-professor">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-prof-title">Cadastrar Professor</h3>
+      <button class="modal-close" onclick="closeModal('modal-professor')">✕</button>
+    </div>
+    <input type="hidden" id="prof-id"/>
+    <div class="form-row">
+      <div class="field"><label>Nome Completo *</label><input type="text" id="prof-nome" placeholder="Nome do professor"/></div>
+      <div class="field"><label>CPF</label><input type="text" id="prof-cpf" placeholder="000.000.000-00"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>E-mail</label><input type="email" id="prof-email" placeholder="email@exemplo.com"/></div>
+      <div class="field"><label>Telefone</label><input type="text" id="prof-tel" placeholder="(00) 00000-0000"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-professor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarProfessor()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Oficina -->
+<div class="modal-overlay" id="modal-oficina">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-ofic-title">Cadastrar Oficina</h3>
+      <button class="modal-close" onclick="closeModal('modal-oficina')">✕</button>
+    </div>
+    <input type="hidden" id="ofic-id"/>
+    <div class="form-row">
+      <div class="field"><label>Nome da Oficina *</label><input type="text" id="ofic-nome" placeholder="Ex: Dança, Futebol..."/></div>
+      <div class="field"><label>Professor Responsável</label><select id="ofic-prof"><option value="">Selecionar...</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Dia da Semana</label>
+        <select id="ofic-dia">
+          <option value="">Selecionar...</option>
+          <option>Segunda-feira</option><option>Terça-feira</option><option>Quarta-feira</option>
+          <option>Quinta-feira</option><option>Sexta-feira</option><option>Sábado</option><option>Domingo</option>
+        </select>
+      </div>
+      <div class="field"><label>Vagas</label><input type="number" id="ofic-vagas" value="30" min="1"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Horário Início</label><input type="time" id="ofic-h1"/></div>
+      <div class="field"><label>Horário Fim</label><input type="time" id="ofic-h2"/></div>
+    </div>
+    <div class="field"><label>Descrição</label><textarea id="ofic-desc" placeholder="Descreva a oficina..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-oficina')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarOficina()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Aula -->
+<div class="modal-overlay" id="modal-aula">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Registrar Nova Aula</h3>
+      <button class="modal-close" onclick="closeModal('modal-aula')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Oficina *</label><select id="nova-aula-oficina"><option value="">Selecionar...</option></select></div>
+      <div class="field"><label>Professor</label><select id="nova-aula-prof"><option value="">Selecionar...</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Data *</label><input type="date" id="nova-aula-data"/></div>
+      <div class="field"><label>Hora Início</label><input type="time" id="nova-aula-h1"/></div>
+    </div>
+    <div class="field"><label>Observações</label><textarea id="nova-aula-obs" placeholder="Observações da aula..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-aula')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarNovaAula()">💾 Criar Aula</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3>⚠️ Confirmar Exclusão</h3>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+    </div>
+    <p style="color:var(--text2);line-height:1.6" id="confirm-msg">Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.</p>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-btn">🗑️ Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  SUPABASE CONFIG
+// ══════════════════════════════════════════
+const SB_URL = 'https://lgxtmqdipjclfunqarqt.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxneHRtcWRpcGpjbGZ1bnFhcnF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDQ2ODUsImV4cCI6MjA4ODkyMDY4NX0.ladZKvGEwnMPJMrZwwOA6QIGGwpkvuFmWixItRcv0Xk';
+
+async function sb(table, method='GET', body=null, query=''){
+  const url = `${SB_URL}/rest/v1/${table}${query}`;
+  const h = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  if(method==='GET') h['Accept']='application/json';
+  if(method==='POST') h['Prefer']='return=representation';
+  if(method==='PATCH') h['Prefer']='return=representation';
+  const r = await fetch(url,{method,headers:h,body:body?JSON.stringify(body):null});
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  if(r.status===204) return [];
+  return r.json();
+}
+
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  if(u==='ongadmin'&&p==='ongamor_2026!'){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('app').style.flexDirection='column';
+    initApp();
+  } else {
+    document.getElementById('loginError').style.display='block';
+  }
+}
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+function doLogout(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+// ══════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`).classList.add('active');
+  if(id==='alunos') loadAlunos();
+  if(id==='professores') loadProfessores();
+  if(id==='oficinas') loadOficinas();
+  if(id==='cracha') loadCracha();
+  if(id==='aula') initAula();
+  if(id==='dashboard') loadDashboard();
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  const d=document.createElement('div');
+  d.className=`toast-item ${type}`;
+  d.innerHTML=(type==='success'?'✅ ':'❌ ')+msg;
+  t.appendChild(d);
+  setTimeout(()=>d.remove(),3500);
+}
+
+// ══════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+
+function confirmDelete(msg, cb){
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-btn').onclick=()=>{cb();closeModal('modal-confirm')};
+  openModal('modal-confirm');
+}
+
+// ══════════════════════════════════════════
+//  CACHE
+// ══════════════════════════════════════════
+let cacheAlunos=[], cacheProfessores=[], cacheOficinas=[], cacheMatriculas=[];
+
+async function initApp(){
+  await Promise.all([loadCacheOficinas(),loadCacheProfessores(),loadCacheAlunos()]);
+  loadDashboard();
+}
+
+async function loadCacheOficinas(){
+  cacheOficinas = await sb('oficinas','GET',null,'?order=nome');
+  populateSelect('filtro-oficina-dash','');
+  populateSelect('filtro-oficina-aluno','');
+  populateSelect('aula-oficina-filtro','');
+  populateSelect('ofic-prof','');
+  populateSelect('nova-aula-oficina','');
+  populateSelectOficinas('filtro-oficina-dash');
+  populateSelectOficinas('filtro-oficina-aluno');
+  populateSelectOficinas('aula-oficina-filtro');
+  populateSelectOficinas('nova-aula-oficina');
+}
+
+async function loadCacheProfessores(){
+  cacheProfessores = await sb('professores','GET',null,'?order=nome');
+  populateSelectProfs('ofic-prof');
+  populateSelectProfs('filtro-prof-dash');
+  populateSelectProfs('nova-aula-prof');
+}
+
+async function loadCacheAlunos(){
+  cacheAlunos = await sb('alunos','GET',null,'?order=nome');
+  cacheMatriculas = await sb('matriculas','GET',null,'?select=*');
+}
+
+function populateSelectOficinas(selId){
+  const s=document.getElementById(selId);
+  if(!s) return;
+  const first=s.options[0]?s.options[0].text:'';
+  while(s.options.length) s.remove(0);
+  const o=document.createElement('option');o.value='';o.textContent=first||'Todas';s.add(o);
+  cacheOficinas.forEach(of=>{const op=document.createElement('option');op.value=of.id;op.textContent=of.nome;s.add(op)});
+}
+function populateSelectProfs(selId){
+  const s=document.getElementById(selId);
+  if(!s) return;
+  const first=s.options[0]?s.options[0].text:'';
+  while(s.options.length) s.remove(0);
+  const o=document.createElement('option');o.value='';o.textContent=first||'Todos';s.add(o);
+  cacheProfessores.forEach(p=>{const op=document.createElement('option');op.value=p.id;op.textContent=p.nome;s.add(op)});
+}
+function populateSelect(){}// dummy
+
+// ══════════════════════════════════════════
+//  ALUNOS
+// ══════════════════════════════════════════
+async function loadAlunos(){
+  cacheAlunos = await sb('alunos','GET',null,'?order=nome');
+  cacheMatriculas = await sb('matriculas','GET',null,'?select=*');
+  renderAlunos();
+}
+
+function renderAlunos(){
+  const q=(document.getElementById('search-aluno').value||'').toLowerCase();
+  const ofFil=document.getElementById('filtro-oficina-aluno').value;
+  const stFil=document.getElementById('filtro-status-aluno').value;
+  let list=cacheAlunos.filter(a=>{
+    const match=a.nome.toLowerCase().includes(q)||a.matricula.toLowerCase().includes(q);
+    const mat=cacheMatriculas.filter(m=>m.aluno_id===a.id&&m.ativo);
+    const ofMatch=ofFil?mat.some(m=>m.oficina_id===ofFil):true;
+    const stMatch=stFil!==''?String(a.ativo)===stFil:true;
+    return match&&ofMatch&&stMatch;
+  });
+  const tb=document.getElementById('tbody-alunos');
+  if(!list.length){tb.innerHTML='<tr><td colspan="7" class="empty-state"><span class="emoji">🔍</span>Nenhum aluno encontrado</td></tr>';return}
+  tb.innerHTML=list.map(a=>{
+    const mats=cacheMatriculas.filter(m=>m.aluno_id===a.id&&m.ativo);
+    const ofNames=mats.map(m=>{const o=cacheOficinas.find(x=>x.id===m.oficina_id);return o?`<span class="badge badge-blue">${o.nome}</span>`:''}).join(' ');
+    return `<tr>
+      <td><span class="badge badge-orange">${a.matricula}</span></td>
+      <td><strong>${a.nome}</strong></td>
+      <td>${a.responsavel||'—'}</td>
+      <td>${a.telefone_responsavel||'—'}</td>
+      <td style="max-width:200px;white-space:normal">${ofNames||'<span style="color:var(--text2)">Nenhuma</span>'}</td>
+      <td>${a.ativo?'<span class="badge badge-green">Ativo</span>':'<span class="badge badge-red">Inativo</span>'}</td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="editAluno('${a.id}')" title="Editar">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="delAluno('${a.id}','${a.nome}')" title="Excluir">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openNovoAluno(){
+  document.getElementById('modal-aluno-title').textContent='Cadastrar Aluno';
+  document.getElementById('aluno-id').value='';
+  ['aluno-nome','aluno-resp','aluno-tel','aluno-end'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('aluno-nasc').value='';
+  buildOficinaCheck([]);
+  openModal('modal-aluno');
+}
+// override button
+document.querySelector('[onclick="openModal(\'modal-aluno\')"]').onclick=openNovoAluno;
+
+function buildOficinaCheck(selectedIds){
+  const c=document.getElementById('oficinas-check');
+  c.innerHTML=cacheOficinas.map(o=>`
+    <label class="checkbox-item ${selectedIds.includes(o.id)?'checked':''}" id="chk-wrap-${o.id}">
+      <input type="checkbox" value="${o.id}" ${selectedIds.includes(o.id)?'checked':''} onchange="this.closest('label').classList.toggle('checked',this.checked)"/>
+      ${o.nome}
+    </label>`).join('');
+}
+
+async function editAluno(id){
+  const a=cacheAlunos.find(x=>x.id===id);
+  const mats=cacheMatriculas.filter(m=>m.aluno_id===id&&m.ativo).map(m=>m.oficina_id);
+  document.getElementById('modal-aluno-title').textContent='Editar Aluno';
+  document.getElementById('aluno-id').value=id;
+  document.getElementById('aluno-nome').value=a.nome;
+  document.getElementById('aluno-resp').value=a.responsavel||'';
+  document.getElementById('aluno-tel').value=a.telefone_responsavel||'';
+  document.getElementById('aluno-end').value=a.endereco||'';
+  document.getElementById('aluno-nasc').value=a.data_nascimento||'';
+  buildOficinaCheck(mats);
+  openModal('modal-aluno');
+}
+
+async function salvarAluno(){
+  const nome=document.getElementById('aluno-nome').value.trim();
+  if(!nome){toast('Nome é obrigatório','error');return}
+  const id=document.getElementById('aluno-id').value;
+  const data={nome,responsavel:document.getElementById('aluno-resp').value,telefone_responsavel:document.getElementById('aluno-tel').value,endereco:document.getElementById('aluno-end').value,data_nascimento:document.getElementById('aluno-nasc').value||null,updated_at:new Date().toISOString()};
+  try{
+    let alunoId=id;
+    if(id){
+      await sb('alunos','PATCH',data,`?id=eq.${id}`);
+    } else {
+      const r=await sb('alunos','POST',{...data,matricula:'',ativo:true});
+      alunoId=r[0].id;
+    }
+    // oficinas
+    const selected=[...document.querySelectorAll('#oficinas-check input:checked')].map(i=>i.value);
+    if(id){
+      await sb('matriculas','DELETE',null,`?aluno_id=eq.${id}`);
+    }
+    for(const oid of selected){
+      await sb('matriculas','POST',{aluno_id:alunoId,oficina_id:oid,ativo:true}).catch(()=>{});
+    }
+    toast(id?'Aluno atualizado!':'Aluno cadastrado!');
+    closeModal('modal-aluno');
+    await loadAlunos();
+    await loadCacheAlunos();
+  }catch(e){toast('Erro: '+e.message,'error')}
+}
+
+async function delAluno(id,nome){
+  confirmDelete(`Excluir o aluno "${nome}"? Todas as frequências serão removidas.`, async()=>{
+    try{await sb('alunos','DELETE',null,`?id=eq.${id}`);toast('Aluno excluído');await loadAlunos();}
+    catch(e){toast('Erro: '+e.message,'error')}
+  });
+}
+
+// ══════════════════════════════════════════
+//  PROFESSORES
+// ══════════════════════════════════════════
+async function loadProfessores(){
+  cacheProfessores=await sb('professores','GET',null,'?order=nome');
+  cacheOficinas=await sb('oficinas','GET',null,'?order=nome');
+  const tb=document.getElementById('tbody-professores');
+  if(!cacheProfessores.length){tb.innerHTML='<tr><td colspan="6" class="empty-state"><span class="emoji">👨‍🏫</span>Nenhum professor cadastrado</td></tr>';return}
+  tb.innerHTML=cacheProfessores.map(p=>{
+    const ofs=cacheOficinas.filter(o=>o.professor_id===p.id).map(o=>`<span class="badge badge-blue">${o.nome}</span>`).join(' ');
+    return `<tr>
+      <td><strong>${p.nome}</strong></td>
+      <td>${p.email||'—'}</td>
+      <td>${p.telefone||'—'}</td>
+      <td>${p.cpf||'—'}</td>
+      <td style="max-width:200px;white-space:normal">${ofs||'<span style="color:var(--text2)">Nenhuma</span>'}</td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="editProf('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="delProf('${p.id}','${p.nome}')">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function editProf(id){
+  const p=cacheProfessores.find(x=>x.id===id);
+  document.getElementById('modal-prof-title').textContent='Editar Professor';
+  document.getElementById('prof-id').value=id;
+  document.getElementById('prof-nome').value=p.nome;
+  document.getElementById('prof-email').value=p.email||'';
+  document.getElementById('prof-tel').value=p.telefone||'';
+  document.getElementById('prof-cpf').value=p.cpf||'';
+  openModal('modal-professor');
+}
+
+async function salvarProfessor(){
+  const nome=document.getElementById('prof-nome').value.trim();
+  if(!nome){toast('Nome é obrigatório','error');return}
+  const id=document.getElementById('prof-id').value;
+  const data={nome,email:document.getElementById('prof-email').value||null,telefone:document.getElementById('prof-tel').value||null,cpf:document.getElementById('prof-cpf').value||null,updated_at:new Date().toISOString()};
+  try{
+    if(id) await sb('professores','PATCH',data,`?id=eq.${id}`);
+    else await sb('professores','POST',data);
+    toast(id?'Professor atualizado!':'Professor cadastrado!');
+    closeModal('modal-professor');
+    await loadProfessores();
+    await loadCacheProfessores();
+  }catch(e){toast('Erro: '+e.message,'error')}
+}
+
+async function delProf(id,nome){
+  confirmDelete(`Excluir o professor "${nome}"?`, async()=>{
+    try{await sb('professores','DELETE',null,`?id=eq.${id}`);toast('Professor excluído');await loadProfessores();}
+    catch(e){toast('Erro: '+e.message,'error')}
+  });
+}
+
+// Reset modal prof
+document.querySelector('[onclick="openModal(\'modal-professor\')"]').onclick=()=>{
+  document.getElementById('modal-prof-title').textContent='Cadastrar Professor';
+  document.getElementById('prof-id').value='';
+  ['prof-nome','prof-email','prof-tel','prof-cpf'].forEach(id=>document.getElementById(id).value='');
+  openModal('modal-professor');
+};
+
+// ══════════════════════════════════════════
+//  OFICINAS
+// ══════════════════════════════════════════
+async function loadOficinas(){
+  cacheOficinas=await sb('oficinas','GET',null,'?order=nome');
+  populateSelectProfs('ofic-prof');
+  const grid=document.getElementById('grid-oficinas');
+  if(!cacheOficinas.length){grid.innerHTML='<div class="card empty-state"><span class="emoji">🎨</span>Nenhuma oficina cadastrada</div>';return}
+  grid.innerHTML=cacheOficinas.map(o=>{
+    const prof=cacheProfessores.find(p=>p.id===o.professor_id);
+    const mats=cacheMatriculas.filter(m=>m.oficina_id===o.id&&m.ativo).length;
+    return `<div class="card" style="border-top:3px solid var(--accent)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <h3 style="font-size:1.05rem">${o.nome}</h3>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editOficina('${o.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delOficina('${o.id}','${o.nome}')">🗑️</button>
+        </div>
+      </div>
+      <p style="color:var(--text2);font-size:.82rem;margin-bottom:12px">${o.descricao||'Sem descrição'}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:.8rem">
+        <span class="badge badge-blue">👨‍🏫 ${prof?prof.nome:'Sem professor'}</span>
+        <span class="badge badge-orange">👦 ${mats} alunos</span>
+        ${o.dia_semana?`<span class="badge badge-green">📅 ${o.dia_semana}</span>`:''}
+        ${o.horario_inicio?`<span class="badge badge-yellow">⏰ ${o.horario_inicio}–${o.horario_fim||'?'}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function editOficina(id){
+  const o=cacheOficinas.find(x=>x.id===id);
+  document.getElementById('modal-ofic-title').textContent='Editar Oficina';
+  document.getElementById('ofic-id').value=id;
+  document.getElementById('ofic-nome').value=o.nome;
+  document.getElementById('ofic-desc').value=o.descricao||'';
+  document.getElementById('ofic-vagas').value=o.vagas||30;
+  document.getElementById('ofic-dia').value=o.dia_semana||'';
+  document.getElementById('ofic-h1').value=o.horario_inicio||'';
+  document.getElementById('ofic-h2').value=o.horario_fim||'';
+  populateSelectProfs('ofic-prof');
+  document.getElementById('ofic-prof').value=o.professor_id||'';
+  openModal('modal-oficina');
+}
+
+async function salvarOficina(){
+  const nome=document.getElementById('ofic-nome').value.trim();
+  if(!nome){toast('Nome é obrigatório','error');return}
+  const id=document.getElementById('ofic-id').value;
+  const data={nome,descricao:document.getElementById('ofic-desc').value,professor_id:document.getElementById('ofic-prof').value||null,dia_semana:document.getElementById('ofic-dia').value,vagas:parseInt(document.getElementById('ofic-vagas').value)||30,horario_inicio:document.getElementById('ofic-h1').value||null,horario_fim:document.getElementById('ofic-h2').value||null,updated_at:new Date().toISOString()};
+  try{
+    if(id) await sb('oficinas','PATCH',data,`?id=eq.${id}`);
+    else await sb('oficinas','POST',data);
+    toast(id?'Oficina atualizada!':'Oficina cadastrada!');
+    closeModal('modal-oficina');
+    await loadCacheOficinas();
+    await loadOficinas();
+  }catch(e){toast('Erro: '+e.message,'error')}
+}
+
+async function delOficina(id,nome){
+  confirmDelete(`Excluir a oficina "${nome}"? Todos os alunos serão desmatriculados.`, async()=>{
+    try{await sb('oficinas','DELETE',null,`?id=eq.${id}`);toast('Oficina excluída');await loadCacheOficinas();await loadOficinas();}
+    catch(e){toast('Erro: '+e.message,'error')}
+  });
+}
+
+document.querySelector('[onclick="openModal(\'modal-oficina\')"]').onclick=()=>{
+  document.getElementById('modal-ofic-title').textContent='Cadastrar Oficina';
+  document.getElementById('ofic-id').value='';
+  ['ofic-nome','ofic-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ofic-vagas').value=30;
+  document.getElementById('ofic-dia').value='';
+  document.getElementById('ofic-h1').value='';document.getElementById('ofic-h2').value='';
+  populateSelectProfs('ofic-prof');
+  openModal('modal-oficina');
+};
+
+// ══════════════════════════════════════════
+//  CRACHÁ
+// ══════════════════════════════════════════
+async function loadCracha(){
+  await loadCacheAlunos();
+  renderCrachaList(cacheAlunos);
+}
+
+function renderCrachaList(list){
+  const c=document.getElementById('lista-cracha');
+  c.innerHTML=list.map(a=>`
+    <div class="aula-card" onclick="gerarCracha('${a.id}')" style="padding:12px;display:flex;align-items:center;gap:10px">
+      <div class="freq-avatar" style="background:var(--card2)">${a.nome.charAt(0)}</div>
+      <div><div style="font-weight:600;font-size:.9rem">${a.nome}</div><div style="font-size:.75rem;color:var(--text2)">${a.matricula}</div></div>
+    </div>`).join('');
+}
+
+function filterCrachaAlunos(){
+  const q=document.getElementById('search-cracha').value.toLowerCase();
+  renderCrachaList(cacheAlunos.filter(a=>a.nome.toLowerCase().includes(q)||a.matricula.toLowerCase().includes(q)));
+}
+
+let qrInstance=null;
+async function gerarCracha(id){
+  const a=cacheAlunos.find(x=>x.id===id);
+  const mats=cacheMatriculas.filter(m=>m.aluno_id===id&&m.ativo);
+  const ofNames=mats.map(m=>{const o=cacheOficinas.find(x=>x.id===m.oficina_id);return o?o.nome:''}).filter(Boolean).join(', ');
+  document.getElementById('cracha-nome').textContent=a.nome;
+  document.getElementById('cracha-mat').textContent='Matrícula: '+a.matricula;
+  document.getElementById('cracha-ofic').textContent=ofNames||'Nenhuma';
+  const qrDiv=document.getElementById('cracha-qr');
+  qrDiv.innerHTML='';
+  new QRCode(qrDiv,{text:a.matricula,width:120,height:120,colorDark:'#1a2235',colorLight:'#ffffff'});
+  document.getElementById('cracha-empty').style.display='none';
+  document.getElementById('cracha-output').style.display='block';
+}
+
+function imprimirCracha(){
+  const el=document.getElementById('cracha-print-area');
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Crachá</title><style>body{margin:0;padding:20px;background:#fff;font-family:sans-serif}.cracha-preview{background:#fff;color:#1a2235;border-radius:16px;padding:24px;max-width:320px;text-align:center;border:1px solid #ccc}.cracha-header{background:linear-gradient(135deg,#0a0f1e,#1e3a5f);border-radius:10px;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;align-items:center;gap:8px}.cracha-logo{width:60px;height:60px;object-fit:contain;border-radius:50%;background:#fff;padding:4px}.cracha-ong{color:#fff;font-family:sans-serif;font-size:.9rem;font-weight:700}.cracha-nome{font-family:sans-serif;font-size:1.15rem;font-weight:800;color:#1a2235;margin:10px 0 4px}.cracha-matricula{font-size:.75rem;color:#64748b;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.cracha-qr{margin:14px auto;display:flex;justify-content:center}.cracha-oficinas{font-size:.72rem;color:#64748b;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:4px}.cracha-oficinas strong{display:block;color:#1a2235;font-size:.78rem;margin-bottom:4px}</style></head><body>${el.outerHTML}</body></html>`);
+  w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},500);
+}
+
+// ══════════════════════════════════════════
+//  REGISTRO DE AULA
+// ══════════════════════════════════════════
+let aulaAtual=null, freqData={}, modoFreq='manual', qrStream=null;
+
+async function initAula(){
+  await loadCacheOficinas();
+  await loadCacheProfessores();
+  populateSelectOficinas('aula-oficina-filtro');
+  populateSelectProfs('nova-aula-prof');
+  populateSelectOficinas('nova-aula-oficina');
+  document.getElementById('aula-data-filtro').value=new Date().toISOString().split('T')[0];
+  loadAulasFreq();
+}
+
+async function loadAulasFreq(){
+  const data=document.getElementById('aula-data-filtro').value;
+  const ofFil=document.getElementById('aula-oficina-filtro').value;
+  let q='?order=created_at.desc';
+  if(data) q+=`&data_aula=eq.${data}`;
+  if(ofFil) q+=`&oficina_id=eq.${ofFil}`;
+  const aulas=await sb('aulas','GET',null,q);
+  const c=document.getElementById('aulas-list');
+  if(!aulas.length){c.innerHTML='<div class="empty-state" style="padding:20px"><span class="emoji">📋</span>Nenhuma aula neste dia</div>';return}
+  c.innerHTML=aulas.map(au=>{
+    const of=cacheOficinas.find(x=>x.id===au.oficina_id);
+    const pr=cacheProfessores.find(x=>x.id===au.professor_id);
+    return `<div class="aula-card ${aulaAtual&&aulaAtual.id===au.id?'selected':''}" onclick="selectAula(${JSON.stringify(au).replace(/"/g,'&quot;')})">
+      <div style="font-weight:700;font-size:.9rem">${of?of.nome:'Oficina'}</div>
+      <div style="font-size:.75rem;color:var(--text2);margin-top:3px">👨‍🏫 ${pr?pr.nome:'—'} &nbsp;|&nbsp; 📅 ${au.data_aula}</div>
+    </div>`;
+  }).join('');
+}
+
+async function selectAula(au){
+  aulaAtual=au;
+  freqData={};
+  const of=cacheOficinas.find(x=>x.id===au.oficina_id);
+  document.getElementById('freq-titulo').textContent=`Frequência — ${of?of.nome:''}`;
+  // buscar alunos matriculados
+  const mats=cacheMatriculas.filter(m=>m.oficina_id===au.oficina_id&&m.ativo);
+  // buscar freq já registrada
+  const freqs=await sb('frequencias','GET',null,`?aula_id=eq.${au.id}`);
+  freqs.forEach(f=>{freqData[f.aluno_id]=f.status});
+  renderFreqLista(mats);
+  document.getElementById('freq-empty').style.display='none';
+  document.getElementById('freq-modo').style.display='block';
+  loadAulasFreq();
+}
+
+function renderFreqLista(mats){
+  const c=document.getElementById('freq-lista');
+  c.innerHTML=mats.map(m=>{
+    const a=cacheAlunos.find(x=>x.id===m.aluno_id);
+    if(!a) return '';
+    const st=freqData[a.id]||'';
+    return `<div class="freq-item" id="fitem-${a.id}">
+      <div class="freq-item-info">
+        <div class="freq-avatar">${a.nome.charAt(0)}</div>
+        <div><div style="font-size:.88rem;font-weight:600">${a.nome}</div><div style="font-size:.72rem;color:var(--text2)">${a.matricula}</div></div>
+      </div>
+      <div class="freq-actions">
+        <button class="freq-btn presente ${st==='presente'?'active-presente':''}" onclick="setFreq('${a.id}','presente')" title="Presente">✅</button>
+        <button class="freq-btn falta ${st==='falta'?'active-falta':''}" onclick="setFreq('${a.id}','falta')" title="Falta">❌</button>
+        <button class="freq-btn atraso ${st==='atraso'?'active-atraso':''}" onclick="setFreq('${a.id}','atraso')" title="Atraso">⏰</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFreq(alunoId, status){
+  freqData[alunoId]=status;
+  document.querySelectorAll(`#fitem-${alunoId} .freq-btn`).forEach(b=>{
+    b.classList.remove('active-presente','active-falta','active-atraso');
+  });
+  const stClass={'presente':'active-presente','falta':'active-falta','atraso':'active-atraso'}[status];
+  const btn=document.querySelector(`#fitem-${alunoId} .freq-btn.${status}`);
+  if(btn) btn.classList.add(stClass);
+}
+
+function setModoFreq(modo){
+  modoFreq=modo;
+  document.getElementById('btn-modo-manual').classList.toggle('btn-primary',modo==='manual');
+  document.getElementById('btn-modo-qr').classList.toggle('btn-primary',modo==='qr');
+  document.getElementById('qr-scanner-area').style.display=modo==='qr'?'block':'none';
+  if(modo==='qr') startQR(); else stopQR();
+}
+
+async function startQR(){
+  try{
+    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    document.getElementById('qr-video').srcObject=qrStream;
+    scanQRLoop();
+  }catch(e){toast('Câmera não disponível','error')}
+}
+
+function stopQR(){
+  if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null;}
+}
+
+function scanQRLoop(){
+  const video=document.getElementById('qr-video');
+  if(!qrStream) return;
+  if(video.readyState===video.HAVE_ENOUGH_DATA){
+    const canvas=document.createElement('canvas');
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    canvas.getContext('2d').drawImage(video,0,0);
+    // Simple approach: use BarcodeDetector if available
+    if('BarcodeDetector' in window){
+      new BarcodeDetector().detect(canvas).then(codes=>{
+        if(codes.length){
+          const mat=codes[0].rawValue;
+          const a=cacheAlunos.find(x=>x.matricula===mat);
+          if(a){
+            setFreq(a.id,'presente');
+            document.getElementById('qr-status').textContent='✅ '+a.nome+' registrado!';
+            setTimeout(()=>{document.getElementById('qr-status').textContent=''},2000);
+          }
+        }
+      });
+    }
+  }
+  setTimeout(scanQRLoop,500);
+}
+
+async function salvarFrequencias(){
+  if(!aulaAtual){toast('Selecione uma aula','error');return}
+  const entries=Object.entries(freqData);
+  if(!entries.length){toast('Nenhuma frequência registrada','error');return}
+  try{
+    for(const [alunoId,status] of entries){
+      // upsert via delete+insert
+      await sb('frequencias','DELETE',null,`?aula_id=eq.${aulaAtual.id}&aluno_id=eq.${alunoId}`).catch(()=>{});
+      await sb('frequencias','POST',{aula_id:aulaAtual.id,aluno_id:alunoId,status});
+    }
+    toast('Frequências salvas com sucesso!');
+  }catch(e){toast('Erro ao salvar: '+e.message,'error')}
+}
+
+async function salvarNovaAula(){
+  const ofId=document.getElementById('nova-aula-oficina').value;
+  const data=document.getElementById('nova-aula-data').value;
+  if(!ofId||!data){toast('Oficina e data são obrigatórios','error');return}
+  const obj={oficina_id:ofId,professor_id:document.getElementById('nova-aula-prof').value||null,data_aula:data,hora_inicio:document.getElementById('nova-aula-h1').value||null,observacoes:document.getElementById('nova-aula-obs').value||null};
+  try{
+    await sb('aulas','POST',obj);
+    toast('Aula criada!');
+    closeModal('modal-aula');
+    loadAulasFreq();
+  }catch(e){toast('Erro: '+e.message,'error')}
+}
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+let charts={};
+
+async function loadDashboard(){
+  const dias=parseInt(document.getElementById('filtro-periodo').value||30);
+  const ofFil=document.getElementById('filtro-oficina-dash').value;
+  const prFil=document.getElementById('filtro-prof-dash').value;
+  const desde=new Date();desde.setDate(desde.getDate()-dias);
+  const fromDate=desde.toISOString().split('T')[0];
+
+  // load data
+  const [alunos,oficinas,mats,aulas,freqs]=await Promise.all([
+    sb('alunos','GET',null,'?ativo=eq.true'),
+    sb('oficinas','GET',null,'?order=nome'),
+    sb('matriculas','GET',null,'?ativo=eq.true'),
+    sb('aulas','GET',null,`?data_aula=gte.${fromDate}${ofFil?'&oficina_id=eq.'+ofFil:''}${prFil?'&professor_id=eq.'+prFil:''}`),
+    sb('frequencias','GET',null,'?select=*')
+  ]);
+
+  const aulaIds=aulas.map(a=>a.id);
+  const freqsFilt=freqs.filter(f=>aulaIds.includes(f.aula_id));
+
+  // stats
+  document.getElementById('stat-total').textContent=alunos.length;
+  document.getElementById('stat-oficinas').textContent=oficinas.length;
+  document.getElementById('stat-presencas').textContent=freqsFilt.filter(f=>f.status==='presente').length;
+  document.getElementById('stat-faltas').textContent=freqsFilt.filter(f=>f.status==='falta').length;
+
+  // chart: alunos por oficina
+  const matsOficina=oficinas.map(o=>({nome:o.nome,count:mats.filter(m=>m.oficina_id===o.id).length})).filter(x=>x.count>0);
+  renderChart('chartOficinas','bar',matsOficina.map(x=>x.nome),matsOficina.map(x=>x.count),'Alunos por Oficina',['rgba(249,115,22,.8)']);
+
+  // chart: freq status
+  const sp=freqsFilt.filter(f=>f.status==='presente').length;
+  const sf=freqsFilt.filter(f=>f.status==='falta').length;
+  const sa=freqsFilt.filter(f=>f.status==='atraso').length;
+  const sj=freqsFilt.filter(f=>f.status==='justificado').length;
+  renderChart('chartFreqStatus','doughnut',['Presente','Falta','Atraso','Justificado'],[sp,sf,sa,sj],'Status',['rgba(34,197,94,.8)','rgba(239,68,68,.8)','rgba(234,179,8,.8)','rgba(59,130,246,.8)']);
+
+  // chart timeline: agrupar por semana
+  const byDate={};
+  aulas.forEach(au=>{
+    const d=au.data_aula;
+    if(!byDate[d]) byDate[d]={presente:0,falta:0};
+    const fDay=freqsFilt.filter(f=>f.aula_id===au.id);
+    byDate[d].presente+=fDay.filter(f=>f.status==='presente').length;
+    byDate[d].falta+=fDay.filter(f=>f.status==='falta').length;
+  });
+  const dates=Object.keys(byDate).sort();
+  renderChartTimeline(dates,dates.map(d=>byDate[d].presente),dates.map(d=>byDate[d].falta));
+
+  // ranking faltas
+  const faltasPorAluno={};
+  freqsFilt.forEach(f=>{
+    if(!faltasPorAluno[f.aluno_id]) faltasPorAluno[f.aluno_id]={presente:0,falta:0,atraso:0};
+    faltasPorAluno[f.aluno_id][f.status]=(faltasPorAluno[f.aluno_id][f.status]||0)+1;
+  });
+  const ranking=Object.entries(faltasPorAluno).map(([aid,s])=>({aluno:alunos.find(a=>a.id===aid),...s})).filter(x=>x.aluno).sort((a,b)=>b.falta-a.falta).slice(0,10);
+  const tb=document.getElementById('tbody-faltas');
+  if(!ranking.length){tb.innerHTML='<tr><td colspan="6" class="empty-state">Sem dados no período</td></tr>';return}
+  tb.innerHTML=ranking.map(r=>{
+    const tot=r.presente+r.falta+r.atraso;
+    const pct=tot>0?Math.round(r.presente/tot*100):0;
+    return `<tr>
+      <td><strong>${r.aluno.nome}</strong></td>
+      <td><span class="badge badge-orange">${r.aluno.matricula}</span></td>
+      <td><span class="badge badge-red">${r.falta}</span></td>
+      <td><span class="badge badge-yellow">${r.atraso}</span></td>
+      <td><span class="badge badge-green">${r.presente}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${pct>75?'var(--green)':pct>50?'var(--yellow)':'var(--red)'};border-radius:3px"></div>
+          </div>
+          <span style="font-size:.8rem;font-weight:600;min-width:32px">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderChart(id, type, labels, data, label, colors){
+  const canvas=document.getElementById(id);
+  if(!canvas) return;
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(canvas,{type,data:{labels,datasets:[{label,data,backgroundColor:colors||['rgba(249,115,22,.8)'],borderColor:colors?colors.map(c=>c.replace('.8','1')):['rgba(249,115,22,1)'],borderWidth:type==='bar'?0:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:type==='bar'?{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}}:{}}});
+}
+
+function renderChartTimeline(labels, present, faltas){
+  const canvas=document.getElementById('chartTimeline');
+  if(!canvas) return;
+  if(charts['chartTimeline']) charts['chartTimeline'].destroy();
+  charts['chartTimeline']=new Chart(canvas,{type:'line',data:{labels,datasets:[{label:'Presenças',data:present,borderColor:'rgba(34,197,94,1)',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4},{label:'Faltas',data:faltas,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.1)',fill:true,tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{x:{ticks:{color:'#94a3b8',maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.05)'}}}}});
+}
+</script>
+</body>
+</html>
