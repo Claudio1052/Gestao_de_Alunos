@@ -833,6 +833,12 @@ async function editAluno(id){
   openModal('modal-aluno');
 }
 
+function gerarMatricula(){
+  const ano=new Date().getFullYear().toString().slice(-2);
+  const rand=Math.floor(10000+Math.random()*90000);
+  return `${ano}${rand}`;
+}
+
 async function salvarAluno(){
   const nome=document.getElementById('aluno-nome').value.trim();
   if(!nome){toast('Nome é obrigatório','error');return}
@@ -843,7 +849,15 @@ async function salvarAluno(){
     if(id){
       await sb('alunos','PATCH',data,`?id=eq.${id}`);
     } else {
-      const r=await sb('alunos','POST',{...data,matricula:'',ativo:true});
+      // Gera matrícula única: tenta até encontrar uma disponível
+      let matricula, tentativas=0;
+      while(tentativas<10){
+        matricula=gerarMatricula();
+        const exist=await sb('alunos','GET',null,`?matricula=eq.${matricula}`);
+        if(!exist.length) break;
+        tentativas++;
+      }
+      const r=await sb('alunos','POST',{...data,matricula,ativo:true});
       alunoId=r[0].id;
     }
     // oficinas
